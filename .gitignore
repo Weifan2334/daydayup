@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+*.pyo
+data/*.db
+data/*.db-shm
+data/*.db-wal
+.venv/
+.env
+.idea/
+.vscode/
+.DS_Store
+
+# Build artifacts
+dist-backend/
+build-backend/
+electron/node_modules/
+electron/release/
+_check_asar.js
+_check*.ps1
+_git_*.ps1

@@ -1,0 +1,71 @@
+{
+  "name": "daydayup",
+  "version": "0.3.0",
+  "description": "daydayup v0.3 — Electron desktop shell for lifemgr-pwa",
+  "main": "main.js",
+  "private": true,
+  "author": "范伟",
+  "scripts": {
+    "start": "electron .",
+    "gen-icon": "node gen-icon.js",
+    "postinstall": "node gen-icon.js",
+    "build": "electron-builder --win nsis --x64",
+    "build:dir": "electron-builder --win --dir --x64",
+    "build:portable": "electron-builder --win portable --x64"
+  },
+  "devDependencies": {
+    "electron": "^32.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.daydayup.desktop",
+    "productName": "daydayup",
+    "copyright": "Copyright © 2026 范伟",
+    "asar": true,
+    "files": [
+      "main.js",
+      "preload.js",
+      "icon.png",
+      "icon-256.png",
+      "package.json",
+      "gen-icon.js",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../dist-backend/backend",
+        "to": "backend",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "directories": {
+      "output": "release",
+      "buildResources": "."
+    },
+    "electronDist": "node_modules/electron/dist",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "icon-256.png",
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "executableName": "daydayup",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "daydayup"
+    }
+  }
+}

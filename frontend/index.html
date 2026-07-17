@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f3e9d2" />
+  <title>daydayup · 每日记录</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="icon" href="/static/icons/icon-192.svg" type="image/svg+xml" />
+  <meta name="app-version" content="daydayup v0.3" />
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <!-- =============== 登录/注册门 =============== -->
+  <div class="auth-gate" id="auth-gate">
+    <div class="auth-card">
+      <h1 class="auth-title">daydayup</h1>
+      <p class="auth-subtitle">v0.3 · 多用户版</p>
+      <div class="auth-tabs">
+        <button class="auth-tab is-active" data-mode="login">登录</button>
+        <button class="auth-tab" data-mode="register">注册</button>
+      </div>
+      <form id="auth-form" class="auth-form">
+        <label>
+          <span>用户名</span>
+          <input type="text" name="username" autocomplete="username" required minlength="2" maxlength="32" pattern="[a-zA-Z0-9_\-\.]+" />
+        </label>
+        <label>
+          <span>密码</span>
+          <input type="password" name="password" autocomplete="current-password" required minlength="6" maxlength="128" />
+        </label>
+        <label id="auth-display-row" hidden>
+          <span>昵称（可选）</span>
+          <input type="text" name="display_name" maxlength="64" />
+        </label>
+        <div class="auth-msg" id="auth-msg"></div>
+        <button type="submit" class="auth-submit" id="auth-submit-btn">登录</button>
+      </form>
+      <p class="auth-hint">用户名仅支持字母数字下划线。密码 ≥ 6 位。注册后自动登录。</p>
+    </div>
+  </div>
+
+  <!-- =============== 主应用 =============== -->
+  <div class="app" id="app" hidden>
+    <header class="topbar">
+      <div class="brand">
+        <span class="title">daydayup</span>
+        <span class="version">v0.3</span>
+      </div>
+      <div class="meta">
+        <span id="today-date">—</span>
+        <span class="dot">·</span>
+        <span id="now-time">--:--</span>
+      </div>
+    </header>
+
+    <!-- Tab 切换 -->
+    <nav class="tabs" id="tabs">
+      <button class="tab is-active" data-view="today">📅 今日</button>
+      <button class="tab" data-view="calendar">📆 日历</button>
+      <button class="tab" data-view="settings">⚙️ 设置</button>
+    </nav>
+
+    <!-- =============== 今日视图 =============== -->
+    <section class="view" id="view-today">
+      <!-- 自律成长 banner：注册日期 + 第 N 天 -->
+      <section class="account-banner" id="account-banner" hidden>
+        <div class="ab-emoji" aria-hidden="true">🌱</div>
+        <div class="ab-main">
+          <div class="ab-title">
+            自律成长第 <strong id="ab-days">—</strong> 天
+          </div>
+          <div class="ab-meta">
+            自 <span id="ab-since">—</span> 起
+            <span class="ab-sep">·</span>
+            <span id="ab-username">—</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="current-block" id="current-block-card">
+        <div class="cb-label">现在</div>
+        <div class="cb-main">
+          <div class="cb-time">
+            <span id="cb-start">--:--</span>
+            <span class="cb-dash">→</span>
+            <span id="cb-end">--:--</span>
+          </div>
+          <div class="cb-info">
+            <div class="cb-title" id="cb-title">—</div>
+            <div class="cb-note" id="cb-note">—</div>
+          </div>
+        </div>
+        <div class="cb-next">
+          <span class="cb-next-label">下一段</span>
+          <strong id="cb-next-label-text">—</strong>
+          <span id="cb-next-when">—</span>
+        </div>
+      </section>
+
+      <div class="content">
+        <section class="card">
+          <header class="card-head">
+            <h2>作息时间轴</h2>
+            <span class="badge" id="blocks-count">0</span>
+          </header>
+          <ol class="timeline" id="timeline"></ol>
+        </section>
+
+        <section class="card">
+          <header class="card-head">
+            <h2>今日任务</h2>
+            <span class="badge" id="task-count">0/0</span>
+          </header>
+          <ul class="task-list" id="task-list"></ul>
+          <form class="add-task" id="add-task-form">
+            <input type="text" id="new-task-title" placeholder="加一条任务…" maxlength="200" required />
+            <input type="time" id="new-task-time" />
+            <button type="submit">+ 添加</button>
+          </form>
+        </section>
+      </div>
+    </section>
+
+    <!-- =============== 日历视图 =============== -->
+    <section class="view" id="view-calendar" hidden>
+      <div class="content">
+        <section class="card calendar-card">
+          <header class="card-head calendar-head">
+            <button class="cal-nav" id="cal-prev" aria-label="上个月">‹</button>
+            <h2 id="cal-title">—</h2>
+            <button class="cal-nav" id="cal-next" aria-label="下个月">›</button>
+          </header>
+          <div class="cal-weekdays">
+            <span>一</span><span>二</span><span>三</span><span>四</span>
+            <span>五</span><span class="weekend">六</span><span class="weekend">日</span>
+          </div>
+          <div class="cal-grid" id="cal-grid"></div>
+          <footer class="cal-footer">
+            <div class="cal-legend">
+              <span><span class="legend-dot legend-dot-todo"></span>有任务</span>
+              <span><span class="legend-dot legend-dot-done"></span>已完成</span>
+              <span><span class="legend-dot legend-dot-today"></span>今天</span>
+            </div>
+            <button class="cal-today-btn" id="cal-today-btn">回到今天</button>
+          </footer>
+          <div class="cal-summary-line" id="cal-summary">—</div>
+        </section>
+        <section class="card" id="cal-day-card" hidden>
+          <header class="card-head">
+            <h2 id="cal-day-title">—</h2>
+            <span class="badge" id="cal-day-count">0/0</span>
+          </header>
+          <ul class="task-list" id="cal-day-tasks"></ul>
+          <form class="add-task" id="cal-add-task-form">
+            <input type="text" id="cal-new-task-title" placeholder="为这天加一条任务…" maxlength="200" required />
+            <input type="time" id="cal-new-task-time" />
+            <button type="submit">+ 添加</button>
+          </form>
+        </section>
+      </div>
+    </section>
+
+    <!-- =============== 设置视图（v0.3 多用户 + 账号 + 备份） =============== -->
+    <!-- =============== 年度视图（v0.3 OKR） =============== -->
+    <section class="view" id="view-year" hidden>
+      <div class="content">
+
+        <section class="card">
+          <header class="card-head">
+            <h2>🎯 年度 OKR</h2>
+            <span class="badge" id="year-total-badge">0</span>
+          </header>
+          <div class="year-toolbar">
+            <label>
+              <span>年份</span>
+              <select id="year-filter">
+                <option value="2024">2024</option>
+                <option value="2025">2025</option>
+                <option value="2026" selected>2026</option>
+                <option value="2027">2027</option>
+              </select>
+            </label>
+            <button type="button" id="add-goal-btn" class="primary" style="margin-left:auto;">➕ 新目标</button>
+          </div>
+          <div class="year-summary" id="year-summary"></div>
+          <ul class="goal-list" id="goal-list">
+            <li class="cloud-empty">暂无目标。点「➕ 新目标」添加第一个 OKR。</li>
+          </ul>
+        </section>
+
+        <!-- 模态：新增 / 编辑目标 -->
+        <div class="modal" id="goal-modal" hidden>
+          <div class="modal-card">
+            <h3 id="goal-modal-title">➕ 新目标</h3>
+            <form id="goal-form" class="cloud-form">
+              <input type="hidden" name="id" id="goal-form-id" />
+              <label>
+                <span>标题 *</span>
+                <input type="text" name="title" required maxlength="200" placeholder="例：独立通讯作者启动" />
+              </label>
+              <label>
+                <span>分类</span>
+                <select name="category">
+                  <option value="work">工作</option>
+                  <option value="life">生活</option>
+                  <option value="health">健康</option>
+                  <option value="study">学习</option>
+                  <option value="other">其他</option>
+                </select>
+              </label>
+              <label>
+                <span>年份</span>
+                <input type="number" name="year" min="2000" max="2100" value="2026" required />
+              </label>
+              <label>
+                <span>说明（可选）</span>
+                <textarea name="description" rows="2" maxlength="2000" placeholder="为什么这个目标重要"></textarea>
+              </label>
+              <label>
+                <span>目标日期（可选）</span>
+                <input type="date" name="target_date" />
+              </label>
+              <div class="cloud-form-actions">
+                <button type="submit" class="primary" id="goal-save-btn">保存</button>
+                <button type="button" id="goal-cancel-btn">取消</button>
+              </div>
+              <div class="cloud-msg" id="goal-form-msg"></div>
+            </form>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="view" id="view-settings" hidden>
+      <div class="content">
+
+        <!-- 账号信息 -->
+        <section class="card">
+          <header class="card-head">
+            <h2>👤 账号</h2>
+            <span class="badge" id="user-display">—</span>
+          </header>
+          <dl class="account-info">
+            <dt>用户名</dt><dd id="account-username">—</dd>
+            <dt>昵称</dt><dd id="account-displayname">—</dd>
+            <dt>注册时间</dt><dd id="account-created">—</dd>
+            <dt>上次登录</dt><dd id="account-last-login">—</dd>
+          </dl>
+          <div class="cloud-form-actions" style="margin-top: 14px;">
+            <button type="button" id="logout-btn">🚪 退出登录</button>
+          </div>
+        </section>
+
+        <!-- SSH 备份密钥 -->
+        <section class="card">
+          <header class="card-head">
+            <h2>🔐 备份密钥</h2>
+            <span class="badge" id="ssh-status-badge">未配置</span>
+          </header>
+          <p class="hint" style="margin: 0 0 12px;">daydayup 把你的数据加密后备份到中央 CVM（<code>43.136.130.11</code>），无需任何配置。首次使用需生成密钥对并注册到 CVM（需联网 30 秒）。</p>
+          <div id="ssh-info" style="font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 11px; color: var(--text-dim); margin-bottom: 12px; word-break: break-all;"></div>
+          <div class="cloud-form-actions">
+            <button type="button" id="setup-ssh-btn" class="primary">🔑 初始化备份密钥</button>
+          </div>
+          <div class="cloud-msg" id="ssh-msg"></div>
+        </section>
+
+        <!-- 加密备份 -->
+        <section class="card">
+          <header class="card-head">
+            <h2>☁️ 加密备份</h2>
+            <span class="badge" id="cloud-backup-count">0</span>
+          </header>
+          <p class="hint" style="margin: 0 0 12px;">备份文件 AES-256-GCM 加密后才上传 CVM。即使 CVM 被入侵，攻击者也只能拿到密文。</p>
+          <form id="cloud-backup-form" class="cloud-form">
+            <label>
+              <span>备份密码（≥6 位，记住它！恢复时也要用）</span>
+              <input type="password" name="passphrase" minlength="6" required autocomplete="new-password" />
+            </label>
+            <div class="cloud-form-actions">
+              <button type="submit" class="primary">📤 立即备份到 CVM</button>
+            </div>
+            <div class="cloud-msg" id="cloud-backup-msg"></div>
+          </form>
+          <div class="cloud-section-title">历史备份</div>
+          <ul class="cloud-backup-list" id="cloud-backup-list">
+            <li class="cloud-empty">（点「刷新」加载 CVM 上的备份）</li>
+          </ul>
+          <div class="cloud-form-actions">
+            <button type="button" id="cloud-refresh-btn">🔄 刷新</button>
+          </div>
+        </section>
+
+        <!-- 恢复（两步） -->
+        <section class="card" id="cloud-restore-card" hidden>
+          <header class="card-head">
+            <h2>♻️ 恢复备份</h2>
+          </header>
+          <div class="cloud-restore-info" id="cloud-restore-info"></div>
+          <form id="cloud-restore-form" class="cloud-form">
+            <label>
+              <span>备份密码</span>
+              <input type="password" name="passphrase" minlength="6" required autocomplete="off" />
+            </label>
+            <input type="hidden" name="key" id="cloud-restore-key" />
+            <div class="cloud-form-actions">
+              <button type="submit" class="primary">⚠️ 准备恢复</button>
+              <button type="button" id="cloud-restore-cancel">取消</button>
+            </div>
+            <div class="cloud-msg" id="cloud-restore-msg"></div>
+          </form>
+          <div id="cloud-restore-commit-area" hidden>
+            <p class="warn" id="cloud-restore-warn">已解密成功。恢复将覆盖当前所有数据，确认？</p>
+            <div class="cloud-form-actions">
+              <button type="button" class="danger" id="cloud-restore-commit">✅ 确认覆盖</button>
+              <button type="button" id="cloud-restore-discard">🗑️ 放弃</button>
+            </div>
+            <p class="hint">覆盖后请手动重启 daydayup。</p>
+          </div>
+        </section>
+
+        <!-- 修改密码 -->
+        <section class="card">
+          <header class="card-head">
+            <h2>🔒 修改密码</h2>
+          </header>
+          <form id="change-pw-form" class="cloud-form">
+            <label>
+              <span>当前密码</span>
+              <input type="password" name="old_password" required autocomplete="current-password" />
+            </label>
+            <label>
+              <span>新密码（≥6 位）</span>
+              <input type="password" name="new_password" minlength="6" required autocomplete="new-password" />
+            </label>
+            <div class="cloud-form-actions">
+              <button type="submit" class="primary">更新密码</button>
+            </div>
+            <div class="cloud-msg" id="change-pw-msg"></div>
+            <p class="hint">⚠️ 改密码会重置 SSH 备份密钥（私钥用旧密码加密的），改完需重新「初始化备份密钥」</p>
+          </form>
+        </section>
+
+        <!-- 数据管理 -->
+        <section class="card">
+          <header class="card-head">
+            <h2>💾 数据管理</h2>
+            <span class="badge" id="data-size-badge">—</span>
+          </header>
+          <p class="hint" style="margin: 0 0 12px;">导出 = 备份整个 SQLite DB（无加密；加密备份走「☁️ 加密备份」）。导入 = 覆盖当前 DB（需重启）。重置 = 清空任务/实际/设置/目标/本地备份元数据（保留账号+SSH 密钥+作息表）。</p>
+          <div class="data-stats" id="data-stats"></div>
+          <div class="cloud-form" style="margin-top: 12px;">
+            <div class="cloud-form-actions">
+              <button type="button" id="data-export-btn" class="primary">📤 导出 DB</button>
+              <button type="button" id="data-import-btn">📥 导入 DB</button>
+              <input type="file" id="data-import-file" accept=".db" hidden />
+              <button type="button" id="data-reset-btn" style="color: var(--danger); border-color: var(--danger);">🗑️ 重置</button>
+            </div>
+            <div class="cloud-msg" id="data-msg"></div>
+          </div>
+        </section>
+
+        <!-- 音效 -->
+        <section class="card">
+          <header class="card-head">
+            <h2>🔊 音效提醒</h2>
+            <span class="badge" id="audio-status-badge">开</span>
+          </header>
+          <p class="hint" style="margin: 0 0 12px;">Web Audio 合成 5 种提示音，0 资源占用。app 启动 5 秒后渐入生效，焦点不在 daydayup 时静音。</p>
+          <div class="cloud-form">
+            <label class="audio-toggle-row">
+              <input type="checkbox" id="audio-enabled" />
+              <span>启用音效</span>
+            </label>
+            <label>
+              <span>音量 <output id="audio-volume-out">50%</output></span>
+              <input type="range" id="audio-volume" min="0" max="100" value="50" />
+            </label>
+            <label class="audio-toggle-row">
+              <input type="checkbox" id="audio-mute-hidden" />
+              <span>焦点不在 daydayup 时静音</span>
+            </label>
+            <div class="cloud-form-actions" style="flex-wrap: wrap;">
+              <button type="button" data-audio-preview="block_change">▶ 作息块切换</button>
+              <button type="button" data-audio-preview="task_due">▶ 任务到点</button>
+              <button type="button" data-audio-preview="task_done">▶ 任务完成</button>
+              <button type="button" data-audio-preview="backup_ok">▶ 备份成功</button>
+              <button type="button" data-audio-preview="backup_fail">▶ 备份失败</button>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </section>
+
+    <!-- 初始化备份密钥：密码输入弹窗（替代 window.prompt，Electron 默认禁用） -->
+    <div class="modal" id="pwd-modal" hidden>
+      <div class="modal-card pwd-modal-card">
+        <h3>🔑 初始化备份密钥</h3>
+        <p class="hint" style="margin: 0 0 12px;">用你的登录密码加密本地私钥。私钥只存在本机，永远不上传。</p>
+        <form id="pwd-form">
+          <label>
+            <span>登录密码</span>
+            <input type="password" id="pwd-input" autocomplete="current-password" required autofocus />
+          </label>
+          <div class="cloud-form-actions" style="margin-top: 14px;">
+            <button type="submit" class="primary" id="pwd-submit-btn">🔑 生成并注册</button>
+            <button type="button" id="pwd-cancel-btn">取消</button>
+          </div>
+          <div class="cloud-msg" id="pwd-msg"></div>
+        </form>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <span>本地优先 · CVM 加密备份</span>
+      <span class="sep">·</span>
+      <span id="health-status">●</span>
+    </footer>
+  </div>
+
+  <script src="/static/audio.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
