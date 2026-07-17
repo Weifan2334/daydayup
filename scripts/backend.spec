@@ -52,7 +52,6 @@ hiddenimports = [
     "paramiko.ssh_exception",
     "paramiko.transport",
     "paramiko.auth_handler",
-    "paramiko.dsskey",
     "paramiko.rsakey",
     "paramiko.ecdsakey",
     "paramiko.ed25519key",
