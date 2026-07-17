@@ -422,18 +422,50 @@
       $('account-displayname').textContent = me.display_name || '—';
       $('account-created').textContent = (me.created_at || '').slice(0, 19).replace('T', ' ');
       $('account-last-login').textContent = (me.last_login_at || '').slice(0, 19).replace('T', ' ') || '—';
-      if (me.ssh_registered) {
-        $('ssh-status-badge').textContent = '已注册 ✓';
-        $('ssh-status-badge').style.color = '#6dd58c';
-        $('setup-ssh-btn').textContent = '🔄 重新生成密钥';
-        $('ssh-info').textContent = '公钥已注册到 CVM（' + (me.username || '?') + '）。每天首次备份时由 CVM 验证。';
-      } else {
-        $('ssh-status-badge').textContent = '未配置';
-        $('ssh-status-badge').style.color = '';
-        $('setup-ssh-btn').textContent = '🔑 初始化备份密钥';
-        $('ssh-info').textContent = '';
-      }
+      renderSshStatus(me);
+      // 若未注册 → 启动轮询
+      if (!me.ssh_registered) startSshPolling();
+      else stopSshPolling();
     } catch (e) { console.error('loadAccount', e); }
+  }
+
+  function renderSshStatus(me) {
+    if (me.ssh_registered) {
+      $('ssh-status-badge').textContent = '已注册 ✓';
+      $('ssh-status-badge').style.color = '#6dd58c';
+      $('setup-ssh-btn').textContent = '🔄 重新生成密钥';
+      $('setup-ssh-btn').disabled = false;
+      $('ssh-info').textContent = '公钥已注册到 CVM（' + (me.username || '?') + '）。每天首次备份时由 CVM 验证。';
+    } else {
+      $('ssh-status-badge').textContent = '未注册';
+      $('ssh-status-badge').style.color = '';
+      $('setup-ssh-btn').textContent = '🔑 手动初始化';
+      $('setup-ssh-btn').disabled = false;
+      $('ssh-info').textContent = '后台正在自动注册到 CVM…几秒后会自动变成「已注册 ✓」。';
+    }
+  }
+
+  let _sshPollTimer = null;
+  let _sshPollCount = 0;
+  const SSH_POLL_MAX = 40;  // 40 * 3s = 120s
+  function startSshPolling() {
+    if (_sshPollTimer) return;
+    _sshPollCount = 0;
+    _sshPollTimer = setInterval(async () => {
+      _sshPollCount++;
+      try {
+        const me = await api('/api/auth/me');
+        renderSshStatus(me);
+        if (me.ssh_registered) { stopSshPolling(); return; }
+      } catch (e) { /* keep polling on transient errors */ }
+      if (_sshPollCount >= SSH_POLL_MAX) {
+        stopSshPolling();
+        $('ssh-info').textContent = '⏳ 后台继续重试中…如果长时间未注册，可手动点「手动初始化」重试。';
+      }
+    }, 3000);
+  }
+  function stopSshPolling() {
+    if (_sshPollTimer) { clearInterval(_sshPollTimer); _sshPollTimer = null; }
   }
 
   $('logout-btn').addEventListener('click', () => { if (confirm('确定要退出登录？')) logout(); });

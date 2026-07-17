@@ -1,10 +1,14 @@
 """Auth service (v0.3 C)."""
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from .. import db
 from ..models import RegisterIn, LoginIn, ChangePasswordIn
+from . import keygen
+
+log = logging.getLogger("daydayup.auth")
 
 
 class AuthError(Exception):
@@ -18,6 +22,12 @@ def register(payload: RegisterIn) -> dict[str, Any]:
     if existing is not None:
         raise AuthError("username already exists", code=409)
     user = db.create_user(payload.username, payload.password, payload.display_name)
+    # 自动生成 SSH 密钥对（同步、毫秒级） + 后台异步注册到 CVM（≤90s，不阻塞响应）
+    try:
+        keygen.generate_keypair(user["id"], payload.password)
+        keygen.schedule_register_to_cvm(user["id"])
+    except Exception as e:
+        log.warning("auto keygen failed for new user=%s: %s", user["username"], e)
     return user
 
 
@@ -34,6 +44,10 @@ def login(payload: LoginIn) -> dict[str, Any]:
     expires_row = db.get_conn().execute(
         "SELECT expires_at FROM auth_tokens WHERE token = ?", (token,)
     ).fetchone()
+    # 如果登录时发现 ssh_registered=0 但已有密钥对（中途进程被杀、网络抖动等）→ 重启后台注册
+    if not user.get("ssh_registered") and user.get("public_key") and user.get("encrypted_private_key"):
+        log.info("login resume: re-scheduling CVM register for user=%s", user["username"])
+        keygen.schedule_register_to_cvm(user["id"])
     return {
         "user": _to_user_out(user),
         "token": token,
@@ -63,6 +77,12 @@ def change_password(token: str, payload: ChangePasswordIn) -> None:
         raise AuthError("old password incorrect", code=400)
     new_hash = db.hash_password(payload.new_password)
     db.update_user(user["id"], password_hash=new_hash)
+    # 改密后重新生成密钥对（新密码派生新 AES key 加密新私钥） + 后台异步重新注册到 CVM
+    try:
+        keygen.generate_keypair(user["id"], payload.new_password)
+        keygen.schedule_register_to_cvm(user["id"])
+    except Exception as e:
+        log.warning("re-keygen on change-password failed for user=%s: %s", user["username"], e)
 
 
 def _to_user_out(user: dict[str, Any]) -> dict[str, Any]:
