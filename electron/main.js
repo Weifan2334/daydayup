@@ -179,7 +179,7 @@ function createTray() {
     ? nativeImage.createEmpty()
     : nativeImage.createFromPath(ICON_PATH);
   tray = new Tray(img);
-  tray.setToolTip(`daydayup v0.2 · 后端 ${backendReady ? '✓' : '…'} :${PORT}`);
+  tray.setToolTip(`daydayup v0.3 · 后端 ${backendReady ? '✓' : '…'} :${PORT}`);
   refreshTrayMenu();
   tray.on('click', () => toggleWindow());
   tray.on('double-click', () => toggleWindow());

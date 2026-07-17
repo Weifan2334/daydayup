@@ -1,6 +1,6 @@
 {
   "name": "daydayup",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "daydayup v0.3 — Electron desktop shell for lifemgr-pwa",
   "main": "main.js",
   "private": true,
