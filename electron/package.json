@@ -1,6 +1,6 @@
 {
   "name": "daydayup",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "daydayup v0.3.2 �?武侠少侠主题 · Electron desktop shell for lifemgr-pwa",
   "main": "main.js",
   "private": true,
@@ -69,4 +69,5 @@
     }
   }
 }
+
 
