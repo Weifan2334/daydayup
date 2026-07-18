@@ -7,8 +7,7 @@
   "author": "范伟",
   "scripts": {
     "start": "electron .",
-    "gen-icon": "node gen-icon.js",
-    "postinstall": "node gen-icon.js",
+    "render-icon": "python ../frontend/assets/shaoxia/_render_icon.py",
     "build": "electron-builder --win nsis --x64",
     "build:dir": "electron-builder --win --dir --x64",
     "build:portable": "electron-builder --win portable --x64"
@@ -26,9 +25,10 @@
       "main.js",
       "preload.js",
       "icon.png",
+      "icon-128.png",
       "icon-256.png",
+      "icon-512.png",
       "package.json",
-      "gen-icon.js",
       "node_modules/**/*"
     ],
     "extraResources": [
