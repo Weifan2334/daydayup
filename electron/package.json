@@ -1,7 +1,7 @@
 {
   "name": "daydayup",
-  "version": "0.3.1",
-  "description": "daydayup v0.3 — Electron desktop shell for lifemgr-pwa",
+  "version": "0.3.2",
+  "description": "daydayup v0.3.2 — 武侠少侠主题 · Electron desktop shell for lifemgr-pwa",
   "main": "main.js",
   "private": true,
   "author": "范伟",

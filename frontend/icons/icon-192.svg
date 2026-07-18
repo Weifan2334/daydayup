@@ -1,20 +1,101 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#d4a373"/>
-      <stop offset="1" stop-color="#b07a4a"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a3a3a"/>
+      <stop offset="60%" stop-color="#2c4f3e"/>
+      <stop offset="100%" stop-color="#0f1f1c"/>
     </linearGradient>
+    <linearGradient id="moon" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f5e9c8"/>
+      <stop offset="100%" stop-color="#d6c388"/>
+    </linearGradient>
+    <linearGradient id="robe" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8fb4a4"/>
+      <stop offset="100%" stop-color="#4f7a68"/>
+    </linearGradient>
+    <filter id="ink" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="0.6"/>
+    </filter>
   </defs>
-  <rect width="192" height="192" rx="40" fill="#1a1d24"/>
-  <g transform="translate(96 96)">
-    <!-- 花瓣 -->
-    <g fill="url(#g)">
-      <ellipse cx="0" cy="-44" rx="20" ry="34" opacity="0.95"/>
-      <ellipse cx="0" cy="-44" rx="20" ry="34" transform="rotate(72)" opacity="0.95"/>
-      <ellipse cx="0" cy="-44" rx="20" ry="34" transform="rotate(144)" opacity="0.95"/>
-      <ellipse cx="0" cy="-44" rx="20" ry="34" transform="rotate(216)" opacity="0.95"/>
-      <ellipse cx="0" cy="-44" rx="20" ry="34" transform="rotate(288)" opacity="0.95"/>
-    </g>
-    <circle r="10" fill="#e9c89b"/>
+
+  <!-- 方角底（无圆角，电子托盘用） -->
+  <rect width="512" height="512" rx="96" ry="96" fill="url(#bg)"/>
+
+  <!-- 远山轮廓（淡墨层叠） -->
+  <path d="M0,360 Q60,330 120,345 T240,335 Q300,320 360,340 T512,330 L512,512 L0,512 Z" fill="#1a3a32" opacity="0.7"/>
+  <path d="M0,395 Q80,375 160,390 T320,385 Q400,375 512,395 L512,512 L0,512 Z" fill="#11271f" opacity="0.85"/>
+
+  <!-- 弯月（右上） -->
+  <g transform="translate(360,120)">
+    <circle r="44" fill="url(#moon)" opacity="0.95"/>
+    <circle cx="14" r="40" fill="url(#bg)"/>
+  </g>
+
+  <!-- 远景竹叶（右上角） -->
+  <g stroke="#9fc4b0" stroke-width="3.5" stroke-linecap="round" fill="none" opacity="0.55">
+    <path d="M420,210 Q445,230 470,225"/>
+    <path d="M425,235 Q450,255 478,250"/>
+    <path d="M412,260 Q438,278 462,275"/>
+  </g>
+
+  <!-- 少侠立姿（侧身） -->
+  <g transform="translate(216,148)" filter="url(#ink)">
+    <!-- 头部（高髻） -->
+    <ellipse cx="0" cy="-30" rx="22" ry="26" fill="#e8d4a8"/>
+    <!-- 发髻小球 -->
+    <circle cx="0" cy="-62" r="14" fill="#1a1a1a"/>
+    <ellipse cx="0" cy="-58" rx="16" ry="6" fill="#1a1a1a"/>
+    <!-- 飘发带 -->
+    <path d="M-10,-50 Q-40,-30 -55,0 Q-40,-20 -20,-25" stroke="#1a1a1a" stroke-width="4" fill="none" stroke-linecap="round"/>
+
+    <!-- 颈 + 衣领 V -->
+    <path d="M-10,-10 L0,5 L10,-10 L8,5 L-8,5 Z" fill="#cce0d2"/>
+    <!-- 身体青衫（长袍） -->
+    <path d="M-30,5 Q-50,60 -68,180 Q-78,260 -70,320 L70,320 Q78,260 68,180 Q50,60 30,5 Q15,15 0,18 Q-15,15 -30,5 Z"
+          fill="url(#robe)"/>
+    <!-- 衣襟叠层 -->
+    <path d="M-20,8 Q-25,80 -28,180 Q-30,260 -28,320 L-15,320 Q-15,260 -15,180 Q-15,80 -10,12 Z" fill="#3d5f50" opacity="0.5"/>
+    <path d="M0,18 Q0,80 -2,180 Q-4,260 -2,320 L2,320 Q4,260 2,180 Q0,80 0,18 Z" fill="#2d4940" opacity="0.4"/>
+    <!-- 腰带 -->
+    <rect x="-44" y="118" width="88" height="14" fill="#3a2a1c"/>
+    <rect x="-4" y="116" width="8" height="18" fill="#b08a3e"/>
+
+    <!-- 左臂（执剑后手） -->
+    <path d="M-28,30 Q-50,80 -45,140 Q-40,160 -28,165 Q-22,150 -20,130 Q-18,90 -15,40 Z" fill="url(#robe)"/>
+    <!-- 右手（剑把上方） -->
+    <ellipse cx="-50" cy="135" rx="10" ry="8" fill="#e8d4a8"/>
+    <!-- 剑（细长，由右上斜向左下） -->
+    <line x1="-50" y1="135" x2="180" y2="320" stroke="#d8d2c4" stroke-width="6" stroke-linecap="round"/>
+    <!-- 剑柄 -->
+    <line x1="-50" y1="135" x2="-30" y2="148" stroke="#3a2a1c" stroke-width="9" stroke-linecap="round"/>
+    <!-- 剑穗 -->
+    <path d="M-30,148 Q-15,170 5,180" stroke="#a04030" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <!-- 剑格 -->
+    <circle cx="-50" cy="135" r="5" fill="#b08a3e"/>
+
+    <!-- 右臂（自然下垂飘袖） -->
+    <path d="M25,28 Q55,70 70,150 Q78,200 65,260 Q58,290 50,300 Q42,295 40,275 Q42,230 35,180 Q28,110 18,40 Z" fill="url(#robe)"/>
+    <!-- 飘带 -->
+    <path d="M50,180 Q90,200 110,250 Q105,290 95,310" stroke="#8fb4a4" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.7"/>
+    <path d="M55,200 Q100,230 120,285 Q115,310 110,318" stroke="#8fb4a4" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.55"/>
+
+    <!-- 脚下踩石（悬崖） -->
+    <ellipse cx="0" cy="340" rx="100" ry="20" fill="#0a1814"/>
+    <ellipse cx="-15" cy="338" rx="55" ry="8" fill="#1c2e26" opacity="0.8"/>
+  </g>
+
+  <!-- 前景竹叶（左下） -->
+  <g stroke="#9fc4b0" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.7">
+    <path d="M30,420 Q60,400 100,410"/>
+    <path d="M40,440 Q75,420 115,432"/>
+    <path d="M55,460 Q90,442 125,455"/>
+    <path d="M30,420 L42,415 M50,408 L65,400 M75,405 L92,398"/>
+    <path d="M40,440 L52,436 M62,430 L78,425 M88,427 L105,422"/>
+  </g>
+
+  <!-- 落款小印 -->
+  <g transform="translate(456,470)">
+    <rect x="-14" y="-14" width="28" height="28" fill="#a04030" opacity="0.85"/>
+    <text x="0" y="2" text-anchor="middle" font-family="serif" font-size="14" fill="#f5e9c8" font-weight="bold">日</text>
   </g>
 </svg>

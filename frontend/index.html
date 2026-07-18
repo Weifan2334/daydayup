@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#f3e9d2" />
-  <title>daydayup · 每日记录</title>
+  <meta name="theme-color" content="#1f3a2a" />
+  <title>daydayup · 少侠起居注</title>
   <link rel="manifest" href="/manifest.json" />
   <link rel="stylesheet" href="/static/styles.css" />
-  <link rel="icon" href="/static/icons/icon-192.svg" type="image/svg+xml" />
-  <meta name="app-version" content="daydayup v0.3" />
+  <link rel="icon" href="/static/icons/icon-512.svg" type="image/svg+xml" />
+  <meta name="app-version" content="daydayup v0.3.2 · 武侠" />
 </head>
 <body>
   <div class="bg-glow"></div>
@@ -17,7 +17,7 @@
   <div class="auth-gate" id="auth-gate">
     <div class="auth-card">
       <h1 class="auth-title">daydayup</h1>
-      <p class="auth-subtitle">v0.3 · 多用户版</p>
+      <p class="auth-subtitle">v0.3.2 · 少侠起居注</p>
       <div class="auth-tabs">
         <button class="auth-tab is-active" data-mode="login">登录</button>
         <button class="auth-tab" data-mode="register">注册</button>
@@ -46,8 +46,22 @@
   <div class="app" id="app" hidden>
     <header class="topbar">
       <div class="brand">
+        <svg class="sword" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="swordGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#1f3a2a"/>
+              <stop offset="100%" stop-color="#588157"/>
+            </linearGradient>
+          </defs>
+          <line x1="14" y1="14" x2="56" y2="56" stroke="url(#swordGrad)" stroke-width="4.5" stroke-linecap="round"/>
+          <line x1="18" y1="14" x2="58" y2="54" stroke="#d6c388" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
+          <circle cx="14" cy="14" r="4" fill="#b08a3e" stroke="#1f3a2a" stroke-width="1"/>
+          <line x1="9" y1="9" x2="14" y2="14" stroke="#3a2a1c" stroke-width="3" stroke-linecap="round"/>
+          <path d="M9,9 Q4,16 2,24" stroke="#a04030" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M48,8 A6,6 0 1,0 52,16 A4,4 0 1,1 48,8 Z" fill="#d6c388" opacity="0.85"/>
+        </svg>
         <span class="title">daydayup</span>
-        <span class="version">v0.3</span>
+        <span class="version">v0.3.2 · 武侠</span>
       </div>
       <div class="meta">
         <span id="today-date">—</span>

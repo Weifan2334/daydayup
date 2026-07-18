@@ -1,28 +1,30 @@
-/* 每日记录 v0.1 �?美化�?*/
+/* daydayup · 武侠少侠主题 v0.3.2 */
 
 * { box-sizing: border-box; }
 
 :root {
-  /* 米黄主题 (cream/beige) */
-  --bg-base: #f3e9d2;             /* 主背景：温暖米黄 */
-  --bg-elev: #ebe1c8;             /* 略深米色 */
-  --bg-card: rgba(253, 248, 232, 0.88);   /* 卡片：米白半透明 */
-  --bg-card-hover: rgba(253, 248, 232, 1);
+  /* 古卷米黄 + 墨青主调（暖陶土 → 江湖） */
+  --bg-base: #efe6cf;                /* 古卷米黄 */
+  --bg-elev: #e3d8b8;                /* 深米黄 */
+  --bg-card: rgba(252, 248, 235, 0.88);   /* 卡片：宣纸半透 */
+  --bg-card-hover: rgba(252, 248, 235, 1);
   --bg-input: rgba(255, 252, 240, 0.85);  /* 输入框：奶白 */
-  --border: rgba(139, 90, 43, 0.15);      /* 淡褐边框 */
-  --border-strong: rgba(139, 90, 43, 0.28);
-  --text: #2d2419;                /* 主文字：深棕 */
-  --text-dim: #6b5a44;            /* 次文字：灰棕 */
-  --text-mute: #9a8a72;           /* 弱文�?*/
-  --accent: #a05a2c;              /* 焦糖主色 */
-  --accent-soft: #c87830;         /* 亮焦�?*/
-  --accent-bg: rgba(160, 90, 44, 0.12);
-  --accent-glow: rgba(160, 90, 44, 0.32);
-  --success: #5e7c54;             /* 墨绿 */
-  --danger: #a04030;              /* 赭红 */
-  --shadow-sm: 0 2px 6px rgba(139, 90, 43, 0.08);
-  --shadow-md: 0 8px 24px rgba(139, 90, 43, 0.14);
-  --shadow-glow: 0 0 32px rgba(160, 90, 44, 0.22);
+  --border: rgba(58, 90, 64, 0.18);       /* 竹叶青边框 */
+  --border-strong: rgba(58, 90, 64, 0.32);
+  --text: #2a3127;                   /* 主文字：墨青 */
+  --text-dim: #56614f;               /* 次文字：青褐 */
+  --text-mute: #8a8c79;              /* 弱文字 */
+  --accent: #3a5a40;                 /* 墨青主色（竹青） */
+  --accent-soft: #588157;            /* 亮竹青 */
+  --accent-deep: #1f3a2a;            /* 深竹青 */
+  --accent-bg: rgba(58, 90, 64, 0.10);
+  --accent-glow: rgba(58, 90, 64, 0.28);
+  --success: #5e7c54;                /* 墨绿 */
+  --danger: #b6303a;                 /* 朱砂红 */
+  --gold: #b08a3e;                   /* 古铜金 */
+  --shadow-sm: 0 2px 6px rgba(31, 58, 42, 0.10);
+  --shadow-md: 0 8px 24px rgba(31, 58, 42, 0.16);
+  --shadow-glow: 0 0 32px rgba(58, 90, 64, 0.24);
   --r-sm: 8px;
   --r-md: 12px;
   --r-lg: 18px;
@@ -33,24 +35,35 @@ html, body {
   padding: 0;
   background: var(--bg-base);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Inter, Arial, sans-serif;
+  font-family: "LXGW WenKai", "霞鹜文楷", "KaiTi", "STKaiti", "楷体", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", serif;
   font-size: 15px;
-  line-height: 1.55;
+  line-height: 1.6;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-feature-settings: "tnum" 1, "ss01" 1;
 }
 
-/* 背景极光�?*/
+/* 背景水墨层：远山雾霭 + 斜竹影 */
 .bg-glow {
   position: fixed;
   inset: 0;
   z-index: -1;
   background:
-    radial-gradient(ellipse 80% 50% at 15% 0%, rgba(232, 195, 130, 0.35), transparent 60%),
-    radial-gradient(ellipse 60% 50% at 95% 30%, rgba(160, 90, 44, 0.2), transparent 60%),
-    radial-gradient(ellipse 80% 60% at 50% 100%, rgba(176, 130, 80, 0.16), transparent 60%);
+    radial-gradient(ellipse 60% 45% at 85% 8%, rgba(176, 138, 62, 0.22), transparent 60%),     /* 右上暖月 */
+    radial-gradient(ellipse 70% 55% at 12% 35%, rgba(58, 90, 64, 0.18), transparent 65%),    /* 左上青雾 */
+    radial-gradient(ellipse 80% 60% at 50% 100%, rgba(31, 58, 42, 0.22), transparent 60%),    /* 底部深林 */
+    radial-gradient(ellipse 80% 50% at 15% 0%, rgba(88, 129, 87, 0.10), transparent 60%);
+  pointer-events: none;
+}
+.bg-glow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(115deg, transparent 0%, transparent 78%, rgba(58, 90, 64, 0.06) 79%, rgba(58, 90, 64, 0.06) 79.4%, transparent 79.8%),
+    linear-gradient(105deg, transparent 0%, transparent 82%, rgba(58, 90, 64, 0.05) 82.4%, transparent 83%),
+    linear-gradient(125deg, transparent 0%, transparent 88%, rgba(31, 58, 42, 0.07) 88.3%, transparent 88.8%);
   pointer-events: none;
 }
 
@@ -60,7 +73,7 @@ body {
   padding: 18px 18px 88px;
 }
 
-/* ---------- 顶部�?---------- */
+/* ---------- 顶部 · 少侠�?---------- */
 .topbar {
   display: flex;
   align-items: center;
@@ -70,28 +83,36 @@ body {
 }
 .brand {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
   font-weight: 700;
   letter-spacing: 0.3px;
 }
+.brand .sword {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 2px rgba(31, 58, 42, 0.25));
+}
 .brand .title {
   font-size: 22px;
-  background: linear-gradient(120deg, var(--accent), #8b4513);
+  background: linear-gradient(120deg, var(--accent-deep) 0%, var(--accent) 60%, var(--gold) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  text-shadow: 0 1px 2px rgba(139, 90, 43, 0.1);
+  text-shadow: 0 1px 2px rgba(31, 58, 42, 0.08);
+  font-family: "LXGW WenKai", "霞鹜文楷", "KaiTi", "STKaiti", "楷体", serif;
+  letter-spacing: 2px;
 }
 .brand .version {
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 1.5px;
-  color: var(--text-mute);
-  background: var(--bg-elev);
-  padding: 2px 7px;
+  color: var(--accent-deep);
+  background: rgba(176, 138, 62, 0.12);
+  padding: 2px 8px;
   border-radius: 4px;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(176, 138, 62, 0.35);
 }
 .meta {
   font-size: 13px;
@@ -962,12 +983,34 @@ ul.task-list {
 }
 .cloud-form textarea:focus { border-color: var(--accent); }
 
-/* =============== v0.3 鉴权门 =============== */
+/* =============== v0.3.2 鉴权门 · 少侠入门 =============== */
 .auth-gate {
   position: fixed; inset: 0;
   display: flex; align-items: center; justify-content: center;
   z-index: 100;
   padding: 20px;
+  background:
+    linear-gradient(180deg, rgba(31, 58, 42, 0.10) 0%, transparent 35%, transparent 70%, rgba(31, 58, 42, 0.18) 100%);
+}
+.auth-gate::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url('/static/assets/shaoxia/hero.jpg');
+  background-size: cover;
+  background-position: center 30%;
+  opacity: 0.18;
+  filter: grayscale(0.3) blur(0.5px);
+  pointer-events: none;
+  z-index: -1;
+}
+.auth-gate::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(239, 230, 207, 0.6) 0%, rgba(239, 230, 207, 0.3) 40%, rgba(239, 230, 207, 0.5) 100%);
+  pointer-events: none;
+  z-index: -1;
 }
 .auth-card {
   background: var(--bg-card);
@@ -979,13 +1022,22 @@ ul.task-list {
   width: 100%;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  position: relative;
+}
+.auth-card::before {
+  content: '';
+  position: absolute;
+  top: 8px; left: 8px; right: 8px; bottom: 8px;
+  border: 1px solid rgba(176, 138, 62, 0.25);
+  border-radius: calc(var(--r-lg) - 6px);
+  pointer-events: none;
 }
 .auth-title {
   margin: 0 0 4px;
   font-size: 32px;
   font-weight: 700;
-  letter-spacing: 1px;
-  background: linear-gradient(120deg, var(--accent), #8b4513);
+  letter-spacing: 4px;
+  background: linear-gradient(120deg, var(--accent-deep) 0%, var(--accent) 50%, var(--gold) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

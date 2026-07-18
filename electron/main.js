@@ -1,4 +1,4 @@
-// main.js — 明管家 v0.3 Electron 主进程
+// main.js — 明管家 v0.3.2 Electron 主进程
 // 职责：拉起后端（uvicorn 子进程 / 打包后用 backend.exe）→ 等待 /health → 窗口 → 托盘 + 单实例 + 关闭到托盘
 'use strict';
 
@@ -179,7 +179,7 @@ function createTray() {
     ? nativeImage.createEmpty()
     : nativeImage.createFromPath(ICON_PATH);
   tray = new Tray(img);
-  tray.setToolTip(`daydayup v0.3 · 后端 ${backendReady ? '✓' : '…'} :${PORT}`);
+  tray.setToolTip(`daydayup v0.3.2 · 后端 ${backendReady ? '✓' : '…'} :${PORT}`);
   refreshTrayMenu();
   tray.on('click', () => toggleWindow());
   tray.on('double-click', () => toggleWindow());

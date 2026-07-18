@@ -1,19 +1,13 @@
 {
-  "name": "每日记录 — 范先生",
-  "short_name": "每日记录",
-  "description": "范先生的每日记录 PWA：作息时间轴 / 今日任务",
+  "name": "daydayup · 少侠起居注",
+  "short_name": "daydayup",
+  "description": "少侠的日常起居注：今日聚合 / OKR / 日历 / 云备份",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f1115",
-  "theme_color": "#1a1a1a",
+  "background_color": "#efe6cf",
+  "theme_color": "#1f3a2a",
   "orientation": "portrait",
   "icons": [
-    {
-      "src": "/static/icons/icon-192.svg",
-      "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    },
     {
       "src": "/static/icons/icon-512.svg",
       "sizes": "512x512",
