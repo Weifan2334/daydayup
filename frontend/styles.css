@@ -1248,7 +1248,11 @@ ul.task-list {
 }
 
 /* =============== modal 弹窗（goal-modal / pwd-modal） =============== */
+/* 注意：用 :not([hidden]) 取代裸 .modal，避免 display:flex 覆盖 HTML hidden 属性 */
 .modal {
+  display: none;
+}
+.modal:not([hidden]) {
   position: fixed;
   inset: 0;
   z-index: 200;
