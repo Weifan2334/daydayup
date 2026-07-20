@@ -84,8 +84,6 @@ npm run build    # = electron-builder --win nsis
 | GET | `/api/anchors` | 全部作息锚点 |
 | GET | `/api/reminders` | 全部提醒 |
 
----
-
 ## 目录结构
 
 ```
@@ -118,7 +116,7 @@ lifemgr-pwa/
 ├── scripts/
 │   ├── build-backend.py      # PyInstaller 打包脚本
 │   ├── backend.spec          # PyInstaller spec
-│   └ smoke-packaged-backend.py  # 打包后冒烟测试
+│   ├── smoke-packaged-backend.py  # 打包后冒烟测试
 │   └── test-*.py             # 各模块测试
 ├── tests/                    # 自动化测试
 ├── data/lifemgr.db           # SQLite（首次启动创建）
@@ -126,31 +124,6 @@ lifemgr-pwa/
 ├── requirements.txt
 └── README.md
 ```
-
----
-
-## 设计
-
-| 要素 | 值 |
-|---|---|
-| 主色 | `#d4a373` 暖陶土金 / `#a05a2c` 深陶土 |
-| 背景 | `#0f1115` 黑炭 / `#1a1d24` 卡片 / `#20242d` 提升层 |
-| 字体 | system-ui + 苹方 / 微软雅黑 |
-| 风格 | 武侠三国志主题 · 极简 · 密集信息 · 单手可操作 |
-| 桌面图标 | 墨青底 + 居中长剑 + 右上弯月 |
-
----
-
-## 路线图
-
-| 阶段 | 交付 |
-|---|---|
-| **v0.3.4** ✅ | 日历回顾 · AI 作息/计划 · 金币系统 · 桌面端强化 · Key 加密 |
-| v0.4 | 持仓/备孕/职业 三维决策建议 |
-| v0.5 | 日/周/月自动复盘草稿 |
-| v0.6 | OKR / 5 年 / 10 年目标树 |
-
----
 
 ## 许可
 
