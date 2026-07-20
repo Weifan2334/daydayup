@@ -155,6 +155,7 @@ def build_today_view(date_str: str | None = None, user_id: int = 0) -> dict[str,
                 "source": t["source"],
                 "anchor_time": t["anchor_time"],
                 "duration_min": t["duration_min"],
+                "category": t.get("category", "other"),
                 "done": bool(t["done"]),
             }
             for t in tasks

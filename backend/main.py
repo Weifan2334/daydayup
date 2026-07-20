@@ -5,17 +5,17 @@ import logging
 import os
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, UploadFile, File
+from fastapi import Body, Depends, FastAPI, Header, HTTPException, Query, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from . import db
 from .models import (
-    ActualIn, ActualOut, AuthOut, CalendarView,
-    ChangePasswordIn, CloudBackupIn, CloudBackupOut, CloudConfigIn, CloudConfigOut,
+    ActualIn, ActualOut, ActualRecordIn, ActualRecordOut, AiAnalyzeIn, AiDailyReportIn, AiPlanIn, AiScheduleIn,
+    AuthOut, CalendarView, ChangePasswordIn, CloudBackupIn, CloudBackupOut, CloudConfigIn, CloudConfigOut,
     CloudRestoreCommitIn, CloudRestoreIn, CloudRestorePrepareOut,
     GoalIn, GoalUpdateIn, KeyResultIn, KeyResultUpdateIn,
     LoginIn, RegisterIn, TodayTaskIn, TodayTaskOut, TodayView, UserOut,
@@ -24,11 +24,15 @@ from .services import auth as auth_service
 from .services import calendar as calendar_service
 from .services import cloud as cloud_service
 from .services import today as today_service
+from .services import ai as ai_service
 
 ROOT = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = Path(os.environ.get("LIFEMGR_FRONTEND_DIR", str(ROOT / "frontend")))
 
-app = FastAPI(title="daydayup v0.3", version="0.3.0")
+app = FastAPI(title="daydayup v0.3.4", version="0.3.4")
+
+# 金币时间预算：1 天 = 24h = 24 金币；1 金币 = 60 分钟
+COIN_BUDGET_DAY = 24
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -203,6 +207,7 @@ def api_add_task(
         title=payload.title,
         anchor_time=payload.anchor_time,
         duration_min=payload.duration_min,
+        category=payload.category,
     )
 
 
@@ -262,6 +267,35 @@ def api_get_actuals(
     return {str(k): v for k, v in db.get_actuals_for_date(auth["user_id"], date).items()}
 
 
+# ===================== 自由真实记录（时间轴拖拽） =====================
+
+@app.get("/api/actual_records", response_model=list[ActualRecordOut])
+def api_get_actual_records(
+    date: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    auth: dict = Depends(require_auth),
+) -> list[dict]:
+    """返回某天用户的自由真实记录列表（按开始时间排序）。"""
+    return db.list_actual_records(auth["user_id"], date)
+
+
+@app.post("/api/actual_records", response_model=ActualRecordOut)
+def api_upsert_actual_record(payload: ActualRecordIn, auth: dict = Depends(require_auth)) -> dict:
+    """创建或更新一条自由真实记录。id 为空则创建。"""
+    return db.upsert_actual_record(
+        auth["user_id"], payload.date, payload.start_time, payload.end_time, payload.text, payload.id
+    )
+
+
+@app.delete("/api/actual_records")
+def api_delete_actual_record(
+    id: int = Query(..., ge=1),
+    auth: dict = Depends(require_auth),
+) -> dict:
+    """删除一条自由真实记录。"""
+    deleted = db.delete_actual_record(auth["user_id"], id)
+    return {"deleted": deleted}
+
+
 # ===================== 日历 =====================
 
 @app.get("/api/calendar", response_model=CalendarView)
@@ -270,6 +304,15 @@ def api_calendar(
     auth: dict = Depends(require_auth),
 ) -> dict:
     return calendar_service.build_calendar_view(month, user_id=auth["user_id"])
+
+
+@app.get("/api/coins")
+def api_coins(
+    date: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    auth: dict = Depends(require_auth),
+) -> list[dict]:
+    """某单日的金币分布（按类目聚合的时间花费，1 金币 = 1 小时）。"""
+    return db.aggregate_coins(auth["user_id"], date, date)
 
 
 @app.get("/api/tasks_in_range")
@@ -287,10 +330,104 @@ def api_tasks_in_range(
             "source": r["source"],
             "anchor_time": r["anchor_time"],
             "duration_min": r["duration_min"],
+            "category": r.get("category", "other"),
             "done": bool(r["done"]),
         }
         for r in rows
     ]
+
+
+# ===================== 金币回顾（日 / 周 / 月） =====================
+
+@app.get("/api/review")
+def api_review(
+    range: str = Query("day", pattern=r"^(day|week|month)$"),
+    auth: dict = Depends(require_auth),
+) -> dict:
+    """日/周/月回顾：按类目聚合金币消耗。1 金币 = 1 小时。
+
+    金币随时间流逝自动扣除（每小时扣 1 金币），未用于事项的时间金币归为「损失」。
+    - budget：时间窗金币总量（日=24、周=168、月=24*天数）
+    - time_elapsed：已流逝时间对应的金币（按当前时刻算，若范围已结束则等于 budget）
+    - used：事件消耗金币（各事项 duration_min 之和 / 60）
+    - lost：损失金币 = max(0, time_elapsed - used)
+    - remaining：剩余金币 = max(0, budget - time_elapsed)
+    """
+    from datetime import date as _date, datetime as _dt, timedelta as _td
+
+    now = _dt.now()
+    today = now.date()
+    if range == "day":
+        start = end = today
+        budget = COIN_BUDGET_DAY
+    elif range == "week":
+        monday = today - _td(days=today.weekday())  # weekday(): 周一=0
+        start = monday
+        end = monday + _td(days=6)
+        budget = COIN_BUDGET_DAY * 7
+    else:  # month
+        start = today.replace(day=1)
+        if start.month == 12:
+            nxt = start.replace(year=start.year + 1, month=1)
+        else:
+            nxt = start.replace(month=start.month + 1)
+        end = nxt - _td(days=1)
+        budget = COIN_BUDGET_DAY * ((end - start).days + 1)
+
+    start_s = start.strftime("%Y-%m-%d")
+    end_s = end.strftime("%Y-%m-%d")
+
+    # 时间流逝金币：从范围起点到当前时刻（若范围已完全过去则为 budget）
+    if today < start:
+        time_elapsed = 0.0
+    elif today > end:
+        time_elapsed = float(budget)
+    else:
+        full_days = (today - start).days
+        today_hours = now.hour + now.minute / 60.0 + now.second / 3600.0
+        time_elapsed = round(full_days * COIN_BUDGET_DAY + today_hours, 4)
+
+    agg = db.aggregate_coins(auth["user_id"], start_s, end_s)
+    total_min = sum(r["total_min"] for r in agg)
+    used = round(total_min / 60, 2)
+    lost = round(max(0.0, time_elapsed - used), 2)
+    remaining = round(max(0.0, budget - time_elapsed), 2)
+    by_category = [
+        {
+            "category": (r["category"] or "other"),
+            "count": r["count"],
+            "minutes": r["total_min"],
+            "coins": round(r["total_min"] / 60, 2),
+            "done_count": r["done_count"],
+        }
+        for r in agg
+    ]
+    tasks = db.list_tasks_in_range(auth["user_id"], start_s, end_s)
+    tasks_out = [
+        {
+            "id": t["id"],
+            "task_date": t["task_date"],
+            "title": t["title"],
+            "category": t.get("category", "other"),
+            "anchor_time": t["anchor_time"],
+            "duration_min": t["duration_min"],
+            "done": bool(t["done"]),
+        }
+        for t in tasks
+    ]
+    return {
+        "range": range,
+        "start": start_s,
+        "end": end_s,
+        "budget": budget,
+        "time_elapsed": time_elapsed,
+        "used": used,
+        "lost": lost,
+        "remaining": remaining,
+        "total_minutes": total_min,
+        "by_category": by_category,
+        "tasks": tasks_out,
+    }
 
 
 # ===================== v0.3 云备份（per-user，内置默认 CVM） =====================
@@ -479,6 +616,94 @@ def api_delete_kr(kr_id: int, auth: dict = Depends(require_auth)) -> dict[str, s
         return {"status": "deleted"}
     except KeyError:
         raise HTTPException(status_code=404, detail="kr not found")
+
+
+# ===================== AI 荐策 (DeepSeek 代理) =====================
+# 注：DeepSeek Key 由桌面端主进程从加密文件注入环境变量（DEEPSEEK_API_KEY），
+#     不再提供运行时「AI 设置」写入接口，避免任何明文 key 落盘。
+
+@app.post("/api/ai/analyze")
+def api_ai_analyze(payload: dict = Body(default_factory=dict), auth: dict = Depends(require_auth)) -> dict:
+    """接收前端汇总的用户上下文（目标 / 历史 / 今日排程），代理调用 DeepSeek 返回荐策。"""
+    try:
+        ctx = AiAnalyzeIn.model_validate(payload).context
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=e.errors())
+    return ai_service.analyze(ctx)
+
+
+@app.post("/api/ai/plan")
+def api_ai_plan(payload: dict = Body(default_factory=dict), auth: dict = Depends(require_auth)) -> dict:
+    """接收用户的未来计划描述 + 上下文，代理调用 DeepSeek 将其拆解为事件安排推荐。"""
+    try:
+        inp = AiPlanIn.model_validate(payload)
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=e.errors())
+    ctx = inp.context or {}
+    ctx["plan_text"] = inp.plan_text
+    return ai_service.plan(ctx)
+
+
+@app.post("/api/ai/schedule")
+def api_ai_schedule(payload: dict = Body(default_factory=dict), auth: dict = Depends(require_auth)) -> dict:
+    """接收用户情况描述 + 上下文，代理调用 DeepSeek 生成今日完整作息轴。"""
+    try:
+        inp = AiScheduleIn.model_validate(payload)
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=e.errors())
+    ctx = inp.context or {}
+    ctx["user_input"] = inp.user_input
+    return ai_service.schedule(ctx)
+
+
+@app.post("/api/ai/daily_report")
+def api_ai_daily_report(payload: dict = Body(default_factory=dict), auth: dict = Depends(require_auth)) -> dict:
+    """代理调用 DeepSeek，基于某天的真实记录 / 任务完成 / 金币分布生成当日日报。"""
+    from datetime import date as _date
+
+    try:
+        inp = AiDailyReportIn.model_validate(payload)
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=e.errors())
+    date = inp.date
+    # 服务端聚合当日数据，避免前端大包上送
+    actuals = db.list_actual_records(auth["user_id"], date)
+    tasks = db.list_tasks_in_range(auth["user_id"], date, date)
+    agg = db.aggregate_coins(auth["user_id"], date, date)
+    weekday = ""
+    try:
+        d = _date.fromisoformat(date)
+        weekday = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"][d.weekday()]
+    except Exception:
+        pass
+    ctx = {
+        "date": date,
+        "weekday": weekday,
+        "actual_records": [
+            {"start_time": r["start_time"], "end_time": r["end_time"], "text": r["text"]}
+            for r in (actuals or [])
+        ],
+        "tasks": [
+            {
+                "title": t["title"],
+                "anchor_time": t["anchor_time"],
+                "category": t.get("category", "other"),
+                "duration_min": t["duration_min"],
+                "done": bool(t["done"]),
+            }
+            for t in (tasks or [])
+        ],
+        "coin_distribution": [
+            {
+                "category": (r["category"] or "other"),
+                "count": r["count"],
+                "coins": round(r["total_min"] / 60, 2),
+                "done_count": r["done_count"],
+            }
+            for r in (agg or [])
+        ],
+    }
+    return ai_service.daily_report(ctx)
 
 
 # ===================== v0.3 B 数据管理 =====================

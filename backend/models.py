@@ -10,6 +10,7 @@ class TodayTaskIn(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     anchor_time: str | None = Field(None, pattern=r"^\d{2}:\d{2}$")
     duration_min: int | None = Field(None, ge=1, le=24 * 60)
+    category: str = Field("other", pattern=r"^(work|study|health|life|social|leisure|other)$")
 
 
 class TodayTaskOut(BaseModel):
@@ -19,6 +20,7 @@ class TodayTaskOut(BaseModel):
     source: Literal["manual", "worklog", "schedule", "reminder"]
     anchor_time: str | None = None
     duration_min: int | None = None
+    category: str = "other"
     done: bool
 
 
@@ -89,6 +91,36 @@ class ActualOut(BaseModel):
     block_id: int
     actual_text: str
     updated_at: str
+
+
+class ActualRecordIn(BaseModel):
+    """自由真实记录（时间轴拖拽）。"""
+    id: int | None = None
+    date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
+    start_time: str = Field(..., pattern=r"^\d{2}:\d{2}$")
+    end_time: str = Field(..., pattern=r"^\d{2}:\d{2}$")
+    text: str = Field(default="", max_length=2000)
+
+
+class ActualRecordOut(BaseModel):
+    id: int
+    start_time: str
+    end_time: str
+    text: str
+    created_at: str
+    updated_at: str
+
+
+class AiScheduleIn(BaseModel):
+    """DeepSeek 生成今日作息轴。"""
+    user_input: str = Field(default="", max_length=4000)
+    context: dict = Field(default_factory=dict)
+
+
+class AiDailyReportIn(BaseModel):
+    """DeepSeek 生成某日日报（真实记录 + 任务完成 + 金币分布）。"""
+    date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
+    context: dict = Field(default_factory=dict)
 
 
 # ---- v0.3 云备份（SFTP 到 CVM）----
@@ -210,3 +242,18 @@ class KeyResultUpdateIn(BaseModel):
     current_value: float | None = None
     unit: str | None = Field(None, max_length=20)
     due_date: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+
+
+# ---- AI 荐策 (DeepSeek 代理) ----
+class AiAnalyzeIn(BaseModel):
+    context: dict = Field(default_factory=dict)
+
+
+class AiPlanIn(BaseModel):
+    plan_text: str = Field(default="", max_length=4000)
+    context: dict = Field(default_factory=dict)
+
+
+# 强制重建所有模型，确保 FastAPI 构建 TypeAdapter 时无未解析 ForwardRef
+for _model in (AiAnalyzeIn, AiPlanIn, AiDailyReportIn):
+    _model.model_rebuild()

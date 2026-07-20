@@ -4,11 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1f3a2a" />
-  <title>daydayup · 少侠起居注</title>
+  <title>daydayup · 光阴账簿</title>
   <link rel="manifest" href="/manifest.json" />
-  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="stylesheet" href="/static/styles.css?v=0.3.4" />
   <link rel="icon" href="/static/icons/icon-512.svg" type="image/svg+xml" />
-  <meta name="app-version" content="daydayup v0.3.2 · 武侠" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta name="app-version" content="daydayup v0.3.4 · 光阴金币" />
 </head>
 <body>
   <div class="bg-glow"></div>
@@ -17,7 +18,11 @@
   <div class="auth-gate" id="auth-gate">
     <div class="auth-card">
       <h1 class="auth-title">daydayup</h1>
-      <p class="auth-subtitle">v0.3.2 · 少侠起居注</p>
+      <p class="auth-subtitle">v0.3.4 · 光阴金币</p>
+      <blockquote class="auth-quote" id="auth-quote" aria-live="polite">
+        <p class="auth-quote-text" id="auth-quote-text"></p>
+        <cite class="auth-quote-cite" id="auth-quote-cite"></cite>
+      </blockquote>
       <div class="auth-tabs">
         <button class="auth-tab is-active" data-mode="login">登录</button>
         <button class="auth-tab" data-mode="register">注册</button>
@@ -61,37 +66,44 @@
           <path d="M48,8 A6,6 0 1,0 52,16 A4,4 0 1,1 48,8 Z" fill="#d6c388" opacity="0.85"/>
         </svg>
         <span class="title">daydayup</span>
-        <span class="version">v0.3.2 · 武侠</span>
+        <span class="version">v0.3.4 · 光阴金币</span>
       </div>
       <div class="meta">
         <span id="today-date">—</span>
         <span class="dot">·</span>
         <span id="now-time">--:--</span>
+        <span id="coin-pill" class="coin-pill" title="今天剩下的光阴金币">剩余金币 24.0</span>
       </div>
     </header>
 
     <!-- Tab 切换 -->
     <nav class="tabs" id="tabs">
-      <button class="tab is-active" data-view="today">📅 今日</button>
-      <button class="tab" data-view="calendar">📆 日历</button>
-      <button class="tab" data-view="settings">⚙️ 设置</button>
+      <button class="tab" data-view="year">计划</button>
+      <button class="tab is-active" data-view="today">今日</button>
+      <button class="tab" data-view="review">回顾</button>
+      <button class="tab" data-view="calendar">日历</button>
+      <button class="tab" data-view="settings">设置</button>
     </nav>
 
     <!-- =============== 今日视图 =============== -->
     <section class="view" id="view-today">
-      <!-- 自律成长 banner：注册日期 + 第 N 天 -->
-      <section class="account-banner" id="account-banner" hidden>
-        <div class="ab-emoji" aria-hidden="true">🌱</div>
-        <div class="ab-main">
-          <div class="ab-title">
-            自律成长第 <strong id="ab-days">—</strong> 天
+      <!-- 光阴金币卡片：今日剩余金币 + 各事项金币消耗 -->
+      <section class="coin-card" id="coin-card">
+        <div class="coin-head">
+          <div class="coin-remain-wrap">
+            <span class="coin-remain-num" id="coin-remaining">24.0</span>
+            <span class="coin-remain-unit">金币剩余（随时间流逝）</span>
           </div>
-          <div class="ab-meta">
-            自 <span id="ab-since">—</span> 起
-            <span class="ab-sep">·</span>
-            <span id="ab-username">—</span>
+          <div class="coin-meter">
+            <div class="coin-meter-row">
+              <span>事件消耗 <strong id="coin-used">0.0</strong> / 预算 <span id="coin-budget">24</span> 金币</span>
+            </div>
+            <div class="coin-track"><div class="coin-fill" id="coin-fill" style="width:0%"></div></div>
           </div>
         </div>
+        <div class="coin-vault" id="coin-vault" aria-label="今日 24 枚光阴金币（明亮为剩余，暗淡为已流逝）"></div>
+        <p class="coin-vault-legend"><span class="lg-remain"></span>明亮 = 剩余&nbsp;&nbsp;<span class="lg-used"></span>暗淡 = 已流逝</p>
+        <div class="coin-cats" id="coin-cats"></div>
       </section>
 
       <section class="current-block" id="current-block-card">
@@ -115,15 +127,48 @@
       </section>
 
       <div class="content">
-        <section class="card">
+        <section class="card" id="timeline-card">
           <header class="card-head">
-            <h2>作息时间轴</h2>
+            <div class="ch-head">
+              <h2>作息时间轴</h2>
+              <span class="ch-tag">推荐</span>
+            </div>
             <span class="badge" id="blocks-count">0</span>
           </header>
+          <p class="card-hint">根据你的身份与作息生成的建议节奏，仅供参考。</p>
           <ol class="timeline" id="timeline"></ol>
+
+          <div class="ai-schedule-box" id="ai-schedule-box">
+            <div class="ai-schedule-label">🎯 让谋士为你定制今日作息</div>
+            <textarea id="ai-schedule-input" rows="2" maxlength="1000" placeholder="告诉我：你今天要工作还是休息？住在哪里？天气怎样？有什么计划？"></textarea>
+            <div class="ai-schedule-actions">
+              <button id="ai-schedule-btn" type="button">✨ 生成推荐作息</button>
+              <button id="ai-schedule-reset" type="button" hidden>恢复默认</button>
+            </div>
+            <div class="ai-schedule-status" id="ai-schedule-status"></div>
+          </div>
         </section>
 
-        <section class="card">
+        <section class="card" id="actual-card">
+          <header class="card-head">
+            <div class="ch-head">
+              <h2>每日真实记录</h2>
+              <span class="ch-tag ch-tag-record">记录</span>
+            </div>
+            <span class="badge" id="actual-count">0</span>
+          </header>
+          <p class="card-hint">在下方时间轴中拖拽/拉伸记录块，或点击空白处添加真实记录。</p>
+          <div class="actual-grid" id="actual-grid">
+            <div class="actual-grid-ruler" id="actual-grid-ruler"></div>
+            <div class="actual-grid-track" id="actual-grid-track">
+              <div class="actual-grid-lines" id="actual-grid-lines"></div>
+              <div class="actual-grid-bars" id="actual-grid-bars"></div>
+              <div class="actual-grid-now" id="actual-grid-now"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card today-tasks-card">
           <header class="card-head">
             <h2>今日任务</h2>
             <span class="badge" id="task-count">0/0</span>
@@ -132,6 +177,16 @@
           <form class="add-task" id="add-task-form">
             <input type="text" id="new-task-title" placeholder="加一条任务…" maxlength="200" required />
             <input type="time" id="new-task-time" />
+            <select id="new-task-category" aria-label="类目">
+              <option value="work">工作</option>
+              <option value="study">学习</option>
+              <option value="health">健康</option>
+              <option value="life">生活</option>
+              <option value="social">社交</option>
+              <option value="leisure">娱乐</option>
+              <option value="other" selected>其他</option>
+            </select>
+            <input type="number" id="new-task-duration" class="dur-input" placeholder="分钟" min="1" max="1440" />
             <button type="submit">+ 添加</button>
           </form>
         </section>
@@ -167,24 +222,204 @@
             <h2 id="cal-day-title">—</h2>
             <span class="badge" id="cal-day-count">0/0</span>
           </header>
-          <ul class="task-list" id="cal-day-tasks"></ul>
+          <div class="cal-day-mode" id="cal-day-mode"></div>
+
+          <!-- 过去 / 今天：当日数据概览 + DeepSeek 日报 -->
+          <div id="cal-day-past" hidden>
+            <div class="cal-overview" id="cal-overview">
+              <div class="overview-block">
+                <div class="overview-head">📝 真实记录</div>
+                <div id="cal-overview-records" class="overview-body"></div>
+              </div>
+              <div class="overview-block">
+                <div class="overview-head">✅ 任务完成</div>
+                <div id="cal-overview-tasks" class="overview-body"></div>
+              </div>
+              <div class="overview-block">
+                <div class="overview-head">🪙 金币分布</div>
+                <div id="cal-overview-coins" class="overview-body"></div>
+              </div>
+            </div>
+            <div class="ai-report-box" id="ai-report-box">
+              <button id="ai-report-btn" type="button">✨ 生成 DeepSeek 日报</button>
+              <div class="ai-report-status" id="ai-report-status"></div>
+              <div class="ai-report-text" id="ai-report-text"></div>
+            </div>
+          </div>
+
+          <!-- 未来：任务时间提醒 -->
+          <div id="cal-day-future" hidden>
+            <div class="future-head">📅 未来任务提醒</div>
+            <ul class="task-list" id="cal-day-tasks"></ul>
+          </div>
+
           <form class="add-task" id="cal-add-task-form">
             <input type="text" id="cal-new-task-title" placeholder="为这天加一条任务…" maxlength="200" required />
             <input type="time" id="cal-new-task-time" />
+            <select id="cal-new-task-category" aria-label="类目">
+              <option value="work">工作</option>
+              <option value="study">学习</option>
+              <option value="health">健康</option>
+              <option value="life">生活</option>
+              <option value="social">社交</option>
+              <option value="leisure">娱乐</option>
+              <option value="other" selected>其他</option>
+            </select>
+            <input type="number" id="cal-new-task-duration" class="dur-input" placeholder="分钟" min="1" max="1440" />
             <button type="submit">+ 添加</button>
           </form>
         </section>
       </div>
     </section>
 
-    <!-- =============== 设置视图（v0.3 多用户 + 账号 + 备份） =============== -->
-    <!-- =============== 年度视图（v0.3 OKR） =============== -->
-    <section class="view" id="view-year" hidden>
+    <!-- =============== 回顾视图（日 / 周 / 月 金币消耗） =============== -->
+    <section class="view" id="view-review" hidden>
       <div class="content">
+        <nav class="subtabs" id="review-subtabs">
+          <button class="subtab is-active" data-range="day">日回顾</button>
+          <button class="subtab" data-range="week">周回顾</button>
+          <button class="subtab" data-range="month">月回顾</button>
+        </nav>
+
+        <section class="card review-summary-card">
+          <header class="card-head">
+            <h2 id="review-range-title">今日回顾</h2>
+            <span class="badge" id="review-range-badge">—</span>
+          </header>
+          <div class="review-budget">
+            <div class="review-remain">
+              <span class="review-remain-num" id="review-remaining">—</span>
+              <span class="review-remain-unit">剩余金币</span>
+            </div>
+            <div class="review-meter">
+              <div class="review-meter-row">
+                <span>事件消耗 <strong id="review-used">0.0</strong> / 预算 <span id="review-budget">24</span> 金币</span>
+              </div>
+              <div class="review-track"><div class="review-fill" id="review-fill" style="width:0%"></div></div>
+            </div>
+          </div>
+          <div class="review-cats" id="review-cats"></div>
+        </section>
 
         <section class="card">
           <header class="card-head">
-            <h2>🎯 年度 OKR</h2>
+            <h2>事项明细</h2>
+            <span class="badge" id="review-task-count">0</span>
+          </header>
+          <ul class="task-list" id="review-tasks"></ul>
+        </section>
+      </div>
+    </section>
+
+    <!-- =============== 设置视图（v0.3 多用户 + 账号 + 备份） =============== -->
+    <!-- =============== 目标视图（日 / 周 / 月 / 年 事件 + AI 荐策） =============== -->
+    <section class="view" id="view-year" hidden>
+      <div class="content">
+
+        <!-- AI 智慧推荐 -->
+        <section class="card ai-rec-card" id="ai-rec-card">
+          <header class="card-head ai-card-head">
+            <div class="ai-head-left">
+              <div class="strategist-figure" aria-label="谋士献锦囊">
+                <img src="/static/assets/shaoxia/moe-strategist.png" alt="谋士献锦囊" />
+              </div>
+              <div class="ai-head-title">
+                <h2>谋士 · 小锦囊</h2>
+                <p class="ai-head-sub">你的专属日程小谋士</p>
+              </div>
+            </div>
+            <button type="button" id="ai-regen-btn" class="ghost-btn">↻ 重新推演</button>
+          </header>
+          <p class="ai-rec-sub" id="ai-rec-sub">基于近 90 天行事轨迹，推演今日宜为之事。</p>
+          <div class="ai-plan-box" id="ai-plan-box">
+            <label class="ai-plan-label" for="ai-plan-input">🪄 未来计划规划</label>
+            <textarea id="ai-plan-input" rows="3" maxlength="4000" placeholder="描述你未来的计划，例如：下个月要备考软考，平时还要上班，希望每天能抽出 2 小时系统学习……"></textarea>
+            <div class="ai-plan-actions">
+              <button type="button" id="ai-plan-btn" class="primary">✨ 生成安排推荐</button>
+              <span class="ai-plan-hint">谋士将把你的计划拆解为可执行的事件安排</span>
+            </div>
+          </div>
+          <ul class="ai-rec-list" id="ai-rec-list">
+            <li class="cloud-empty">推演中…</li>
+          </ul>
+        </section>
+
+        <!-- 分段导航 -->
+        <nav class="subtabs" id="target-subtabs">
+          <button class="subtab is-active" data-range="day">日事件</button>
+          <button class="subtab" data-range="week">周事件</button>
+          <button class="subtab" data-range="month">月事件</button>
+          <button class="subtab" data-range="year">年事件</button>
+        </nav>
+
+        <!-- 日事件 -->
+        <section class="card target-panel" id="panel-day">
+          <header class="card-head">
+            <h2>今日事件</h2>
+            <span class="badge" id="day-count">0/0</span>
+          </header>
+          <ul class="task-list" id="day-tasks"></ul>
+          <form class="add-event" id="target-day-form">
+            <div class="event-row">
+              <input type="text" id="target-day-title" placeholder="今天要做什么…" maxlength="200" required />
+            </div>
+            <div class="event-row event-row-time">
+              <label class="event-field">
+                <span>开始</span>
+                <input type="time" id="target-day-time" />
+              </label>
+              <span class="event-arrow">→</span>
+              <label class="event-field">
+                <span>结束</span>
+                <input type="time" id="target-day-end" />
+              </label>
+              <label class="event-field event-field-dur">
+                <span>时长</span>
+                <output id="target-day-duration-display">—</output>
+              </label>
+            </div>
+            <div class="event-row event-row-meta">
+              <select id="target-day-category" aria-label="类目">
+                <option value="work">工作</option>
+                <option value="study">学习</option>
+                <option value="health">健康</option>
+                <option value="life">生活</option>
+                <option value="social">社交</option>
+                <option value="leisure">娱乐</option>
+                <option value="other" selected>其他</option>
+              </select>
+              <button type="submit">✚ 添加事件</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- 周事件 -->
+        <section class="card target-panel" id="panel-week" hidden>
+          <header class="card-head">
+            <h2>本周事件</h2>
+            <span class="badge" id="week-count">0/0</span>
+          </header>
+          <div class="week-grid" id="week-grid"></div>
+        </section>
+
+        <!-- 月事件 -->
+        <section class="card target-panel" id="panel-month" hidden>
+          <header class="card-head">
+            <h2>本月事件</h2>
+            <span class="badge" id="month-count">0/0</span>
+          </header>
+          <div class="yo-item">
+            <div class="yo-label">本月完成率</div>
+            <div class="yo-bar"><div class="yo-fill yo-fill-goal" id="month-done-fill"></div></div>
+            <div class="yo-val" id="month-done-val">—</div>
+          </div>
+          <div class="month-weeks" id="month-weeks"></div>
+        </section>
+
+        <!-- 年事件 -->
+        <section class="card target-panel" id="panel-year" hidden>
+          <header class="card-head">
+            <h2>年度计划</h2>
             <span class="badge" id="year-total-badge">0</span>
           </header>
           <div class="year-toolbar">
@@ -199,9 +434,22 @@
             </label>
             <button type="button" id="add-goal-btn" class="primary" style="margin-left:auto;">➕ 新目标</button>
           </div>
+          <div class="year-overview" id="year-overview" hidden>
+            <div class="yo-item">
+              <div class="yo-label">今年时间进度</div>
+              <div class="yo-bar"><div class="yo-fill yo-fill-time" id="yo-time-fill"></div></div>
+              <div class="yo-val" id="yo-time-val">—</div>
+            </div>
+            <div class="yo-item">
+              <div class="yo-label">目标平均进度</div>
+              <div class="yo-bar"><div class="yo-fill yo-fill-goal" id="yo-goal-fill"></div></div>
+              <div class="yo-val" id="yo-goal-val">—</div>
+            </div>
+            <div class="yo-status" id="year-status"></div>
+          </div>
           <div class="year-summary" id="year-summary"></div>
           <ul class="goal-list" id="goal-list">
-            <li class="cloud-empty">暂无目标。点「➕ 新目标」添加第一个 OKR。</li>
+            <li class="cloud-empty">暂无目标。点「➕ 新目标」添加第一个年度计划。</li>
           </ul>
         </section>
 
@@ -269,72 +517,19 @@
           </div>
         </section>
 
-        <!-- SSH 备份密钥 -->
+        <!-- 备份与同步 -->
         <section class="card">
           <header class="card-head">
-            <h2>🔐 备份密钥</h2>
-            <span class="badge" id="ssh-status-badge">未配置</span>
+            <h2>☁️ 备份与同步</h2>
+            <span class="badge" id="backup-sync-status">已开启</span>
           </header>
-          <p class="hint" style="margin: 0 0 12px;">daydayup 把你的数据加密后备份到中央 CVM（<code>43.136.130.11</code>），无需任何配置。首次使用需生成密钥对并注册到 CVM（需联网 30 秒）。</p>
-          <div id="ssh-info" style="font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 11px; color: var(--text-dim); margin-bottom: 12px; word-break: break-all;"></div>
-          <div class="cloud-form-actions">
-            <button type="button" id="setup-ssh-btn" class="primary">🔑 初始化备份密钥</button>
-          </div>
-          <div class="cloud-msg" id="ssh-msg"></div>
-        </section>
-
-        <!-- 加密备份 -->
-        <section class="card">
-          <header class="card-head">
-            <h2>☁️ 加密备份</h2>
-            <span class="badge" id="cloud-backup-count">0</span>
-          </header>
-          <p class="hint" style="margin: 0 0 12px;">备份文件 AES-256-GCM 加密后才上传 CVM。即使 CVM 被入侵，攻击者也只能拿到密文。</p>
-          <form id="cloud-backup-form" class="cloud-form">
-            <label>
-              <span>备份密码（≥6 位，记住它！恢复时也要用）</span>
-              <input type="password" name="passphrase" minlength="6" required autocomplete="new-password" />
-            </label>
-            <div class="cloud-form-actions">
-              <button type="submit" class="primary">📤 立即备份到 CVM</button>
-            </div>
-            <div class="cloud-msg" id="cloud-backup-msg"></div>
-          </form>
-          <div class="cloud-section-title">历史备份</div>
-          <ul class="cloud-backup-list" id="cloud-backup-list">
-            <li class="cloud-empty">（点「刷新」加载 CVM 上的备份）</li>
+          <p class="hint" style="margin: 0 0 12px;">你的数据会同时备份在本地和腾讯云服务器。换设备登录或软件更新时，都能自动找回你的任务、记录、目标等信息。</p>
+          <ul class="account-info" style="margin: 0 0 12px;">
+            <li style="display:flex; align-items:center; gap:8px; margin: 4px 0; color: var(--text-dim);"><span style="color:#6dd58c;">✓</span> 本地自动备份</li>
+            <li style="display:flex; align-items:center; gap:8px; margin: 4px 0; color: var(--text-dim);"><span style="color:#6dd58c;">✓</span> 腾讯云服务器同步</li>
+            <li style="display:flex; align-items:center; gap:8px; margin: 4px 0; color: var(--text-dim);"><span style="color:#6dd58c;">✓</span> 异地登录 / 重装恢复</li>
           </ul>
-          <div class="cloud-form-actions">
-            <button type="button" id="cloud-refresh-btn">🔄 刷新</button>
-          </div>
-        </section>
-
-        <!-- 恢复（两步） -->
-        <section class="card" id="cloud-restore-card" hidden>
-          <header class="card-head">
-            <h2>♻️ 恢复备份</h2>
-          </header>
-          <div class="cloud-restore-info" id="cloud-restore-info"></div>
-          <form id="cloud-restore-form" class="cloud-form">
-            <label>
-              <span>备份密码</span>
-              <input type="password" name="passphrase" minlength="6" required autocomplete="off" />
-            </label>
-            <input type="hidden" name="key" id="cloud-restore-key" />
-            <div class="cloud-form-actions">
-              <button type="submit" class="primary">⚠️ 准备恢复</button>
-              <button type="button" id="cloud-restore-cancel">取消</button>
-            </div>
-            <div class="cloud-msg" id="cloud-restore-msg"></div>
-          </form>
-          <div id="cloud-restore-commit-area" hidden>
-            <p class="warn" id="cloud-restore-warn">已解密成功。恢复将覆盖当前所有数据，确认？</p>
-            <div class="cloud-form-actions">
-              <button type="button" class="danger" id="cloud-restore-commit">✅ 确认覆盖</button>
-              <button type="button" id="cloud-restore-discard">🗑️ 放弃</button>
-            </div>
-            <p class="hint">覆盖后请手动重启 daydayup。</p>
-          </div>
+          <div class="cloud-msg" id="backup-sync-msg"></div>
         </section>
 
         <!-- 修改密码 -->
@@ -355,7 +550,7 @@
               <button type="submit" class="primary">更新密码</button>
             </div>
             <div class="cloud-msg" id="change-pw-msg"></div>
-            <p class="hint">⚠️ 改密码会重置 SSH 备份密钥（私钥用旧密码加密的），改完需重新「初始化备份密钥」</p>
+            <p class="hint">⚠️ 改密码会重置账号凭据，下次登录请使用新密码。</p>
           </form>
         </section>
 
@@ -365,7 +560,7 @@
             <h2>💾 数据管理</h2>
             <span class="badge" id="data-size-badge">—</span>
           </header>
-          <p class="hint" style="margin: 0 0 12px;">导出 = 备份整个 SQLite DB（无加密；加密备份走「☁️ 加密备份」）。导入 = 覆盖当前 DB（需重启）。重置 = 清空任务/实际/设置/目标/本地备份元数据（保留账号+SSH 密钥+作息表）。</p>
+          <p class="hint" style="margin: 0 0 12px;">导出 = 备份整个 SQLite DB（无加密）。导入 = 覆盖当前 DB（需重启）。重置 = 清空任务/实际/设置/目标/本地备份元数据（保留账号+作息表）。</p>
           <div class="data-stats" id="data-stats"></div>
           <div class="cloud-form" style="margin-top: 12px;">
             <div class="cloud-form-actions">
@@ -411,33 +606,29 @@
       </div>
     </section>
 
-    <!-- 初始化备份密钥：密码输入弹窗（替代 window.prompt，Electron 默认禁用） -->
-    <div class="modal" id="pwd-modal" hidden>
-      <div class="modal-card pwd-modal-card">
-        <h3>🔑 初始化备份密钥</h3>
-        <p class="hint" style="margin: 0 0 12px;">用你的登录密码加密本地私钥。私钥只存在本机，永远不上传。</p>
-        <form id="pwd-form">
-          <label>
-            <span>登录密码</span>
-            <input type="password" id="pwd-input" autocomplete="current-password" required autofocus />
-          </label>
-          <div class="cloud-form-actions" style="margin-top: 14px;">
-            <button type="submit" class="primary" id="pwd-submit-btn">🔑 生成并注册</button>
-            <button type="button" id="pwd-cancel-btn">取消</button>
-          </div>
-          <div class="cloud-msg" id="pwd-msg"></div>
-        </form>
-      </div>
-    </div>
-
     <footer class="footer">
-      <span>本地优先 · CVM 加密备份</span>
+      <span>本地 + 腾讯云自动备份</span>
       <span class="sep">·</span>
       <span id="health-status">●</span>
     </footer>
   </div>
 
-  <script src="/static/audio.js"></script>
-  <script src="/static/app.js"></script>
+  <!-- =============== 通用确认弹窗（替代原生 confirm，键盘可达） =============== -->
+  <div class="modal confirm-dialog" id="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message" hidden>
+    <div class="modal-card confirm-card">
+      <h3 id="confirm-title">确认</h3>
+      <p class="confirm-message" id="confirm-message"></p>
+      <div class="cloud-form-actions">
+        <button type="button" id="confirm-ok">确定</button>
+        <button type="button" id="confirm-cancel">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============== 轻提示 toast =============== -->
+  <div class="toast-host" id="toast-host" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="/static/audio.js?v=0.3.4"></script>
+  <script src="/static/app.js?v=0.3.4"></script>
 </body>
 </html>

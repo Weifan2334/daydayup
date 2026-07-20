@@ -1,10 +1,10 @@
 {
   "name": "daydayup",
   "version": "0.3.4",
-  "description": "daydayup v0.3.2 �?武侠少侠主题 · Electron desktop shell for lifemgr-pwa",
+  "description": "daydayup v0.3.4 武侠主题 · Electron desktop shell for lifemgr-pwa",
   "main": "main.js",
   "private": true,
-  "author": "范伟",
+  "author": "明管家",
   "scripts": {
     "start": "electron .",
     "render-icon": "python ../frontend/assets/shaoxia/_render_icon.py",
@@ -19,8 +19,9 @@
   "build": {
     "appId": "com.daydayup.desktop",
     "productName": "daydayup",
-    "copyright": "Copyright © 2026 范伟",
+    "copyright": "Copyright © 2026 明管家",
     "asar": true,
+    "electronLanguages": ["zh-CN", "en-US"],
     "files": [
       "main.js",
       "preload.js",
@@ -29,7 +30,10 @@
       "icon-256.png",
       "icon-512.png",
       "package.json",
-      "node_modules/**/*"
+      "node_modules/**/*",
+      "deepseek.key",
+      "crypto-key.js",
+      "encrypt-key.js"
     ],
     "extraResources": [
       {

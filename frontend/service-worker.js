@@ -1,45 +1,21 @@
-/* 明管家 v0.1 service worker — 离线缓存静态资源 */
-const CACHE_NAME = 'daily-log-v0.1.5';
-const CORE_ASSETS = [
-  '/',
-  '/static/styles.css',
-  '/static/app.js',
-  '/manifest.json',
-  '/static/icons/icon-192.svg',
-];
+/* 明管家 v0.3.2 service worker — 桌面端禁用离线缓存，每次启动强制刷新 */
+// 原因：Electron 桌面端后端始终本地可用，service worker 缓存会导致前端更新后仍显示旧界面。
+// 本 service worker 安装后主动注销自身并清空所有缓存，让后续请求直接走网络。
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS))
-      .then(() => self.skipWaiting())
-  );
+self.addEventListener('install', () => {
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+      Promise.all(keys.map((k) => caches.delete(k)))
     ).then(() => self.clients.claim())
+      .then(() => self.registration.unregister())
+      .catch(() => {})
   );
 });
 
 self.addEventListener('fetch', (event) => {
-  const req = event.request;
-  if (req.method !== 'GET') return;
-  // API 永远走网络（不缓存实时数据）
-  if (req.url.includes('/api/') || req.url.includes('/health')) return;
-
-  event.respondWith(
-    caches.match(req).then((cached) => {
-      const fetchPromise = fetch(req).then((res) => {
-        // 只缓存同源 GET 200
-        if (res && res.status === 200 && res.type === 'basic') {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then((c) => c.put(req, clone));
-        }
-        return res;
-      }).catch(() => cached);
-      return cached || fetchPromise;
-    })
-  );
+  // 不再拦截任何请求，让浏览器直接请求后端
 });

@@ -2,6 +2,6 @@
 const { contextBridge } = require('electron');
 
 contextBridge.exposeInMainWorld('lifemgr', {
-  version: '0.2.0',
+  version: '0.3.4',
   platform: process.platform,
 });

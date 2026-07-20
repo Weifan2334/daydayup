@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import threading
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Iterable
@@ -26,21 +27,29 @@ DB_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _connect() -> sqlite3.Connection:
+    # 每个线程独立连接：FastAPI 在 threadpool 中并发处理请求，共享单连接会触发
+    # "database is locked" / 跨线程 sqlite 错误（间歇性 500）。WAL 模式支持并发读写。
     conn = sqlite3.connect(DB_PATH, check_same_thread=False, isolation_level=None)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode = WAL")
     conn.execute("PRAGMA foreign_keys = ON")
+    # 写锁等待而非立即报错，进一步吸收并发写入的短暂竞争
+    conn.execute("PRAGMA busy_timeout = 5000")
+    with _CONNS_LOCK:
+        _CONNS.append(conn)
     return conn
 
 
-_CONN: sqlite3.Connection | None = None
+_LOCAL = threading.local()
+_CONNS_LOCK = threading.Lock()
+_CONNS: list[sqlite3.Connection] = []
 
 
 def get_conn() -> sqlite3.Connection:
-    global _CONN
-    if _CONN is None:
-        _CONN = _connect()
-    return _CONN
+    conn = getattr(_LOCAL, "conn", None)
+    if conn is None:
+        _LOCAL.conn = _connect()
+    return _LOCAL.conn
 
 
 # ===================== Schema =====================
@@ -48,15 +57,7 @@ def get_conn() -> sqlite3.Connection:
 def _init_schema() -> None:
     conn = get_conn()
     conn.executescript("""
-        -- v0.3 C 迁移：重建需要 user_id 的表
-        DROP TABLE IF EXISTS cloud_backups;
-        DROP TABLE IF EXISTS cloud_config;
-        DROP TABLE IF EXISTS settings;
-        DROP TABLE IF EXISTS block_actuals;
-        DROP TABLE IF EXISTS today_tasks;
-        DROP TABLE IF EXISTS auth_tokens;
-        DROP TABLE IF EXISTS users;
-
+        -- v0.3 C 迁移：非破坏式建表（保留已有用户数据，重启不再清表）
         CREATE TABLE IF NOT EXISTS schedule_anchors (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
             label        TEXT    NOT NULL,
@@ -106,6 +107,7 @@ def _init_schema() -> None:
             source        TEXT    NOT NULL DEFAULT 'manual',
             anchor_time   TEXT,
             duration_min  INTEGER,
+            category      TEXT    NOT NULL DEFAULT 'other',
             done          INTEGER NOT NULL DEFAULT 0,
             created_at    TEXT    NOT NULL,
             updated_at    TEXT    NOT NULL,
@@ -160,6 +162,20 @@ def _init_schema() -> None:
         );
         CREATE INDEX IF NOT EXISTS idx_cloud_backups_user ON cloud_backups(user_id, uploaded_at DESC);
 
+        -- ============== v0.3 D 自由真实记录（时间轴拖拽） ==============
+        CREATE TABLE IF NOT EXISTS actual_records (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id       INTEGER NOT NULL,
+            record_date   TEXT    NOT NULL,
+            start_time    TEXT    NOT NULL,
+            end_time      TEXT    NOT NULL,
+            text          TEXT    NOT NULL DEFAULT '',
+            created_at    TEXT    NOT NULL,
+            updated_at    TEXT    NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_actual_records_user_date ON actual_records(user_id, record_date);
+
         -- ============== v0.3 C 年度计划 (OKR) ==============
         CREATE TABLE IF NOT EXISTS goals (
             id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -193,6 +209,14 @@ def _init_schema() -> None:
         CREATE INDEX IF NOT EXISTS idx_kr_goal ON key_results(goal_id, sort_order);
     """)
 
+    # 迁移：为已存在的 today_tasks 补 category 列（幂等；新库建表时已含该列）
+    try:
+        _cols = [r[1] for r in conn.execute("PRAGMA table_info(today_tasks)").fetchall()]
+        if "category" not in _cols:
+            conn.execute("ALTER TABLE today_tasks ADD COLUMN category TEXT NOT NULL DEFAULT 'other'")
+    except Exception:
+        pass
+
 
 # ===================== Tasks (per-user) =====================
 
@@ -203,13 +227,16 @@ def add_task(
     source: str = "manual",
     anchor_time: str | None = None,
     duration_min: int | None = None,
+    category: str = "other",
 ) -> dict[str, Any]:
+    if not category:
+        category = "other"
     now = datetime.now().isoformat(timespec="seconds")
     conn = get_conn()
     cur = conn.execute(
-        """INSERT INTO today_tasks (user_id, task_date, title, source, anchor_time, duration_min, done, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)""",
-        (user_id, task_date, title, source, anchor_time, duration_min, now, now),
+        """INSERT INTO today_tasks (user_id, task_date, title, source, anchor_time, duration_min, category, done, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)""",
+        (user_id, task_date, title, source, anchor_time, duration_min, category, now, now),
     )
     return get_task(user_id, cur.lastrowid)
 
@@ -378,6 +405,59 @@ def get_actual(user_id: int, actual_date: str, block_id: int) -> str:
     return row["actual_text"] if row else ""
 
 
+# ===================== Actual Records (free-form, per-user) =====================
+
+def list_actual_records(user_id: int, record_date: str) -> list[dict[str, Any]]:
+    """返回某天用户的自由真实记录列表，按开始时间排序。"""
+    conn = get_conn()
+    rows = conn.execute(
+        """SELECT id, start_time, end_time, text, created_at, updated_at
+             FROM actual_records
+            WHERE user_id = ? AND record_date = ?
+            ORDER BY start_time""",
+        (user_id, record_date),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def upsert_actual_record(
+    user_id: int, record_date: str, start_time: str, end_time: str, text: str, record_id: int | None = None
+) -> dict[str, Any]:
+    now = datetime.now().isoformat(timespec="seconds")
+    conn = get_conn()
+    if record_id:
+        conn.execute(
+            """UPDATE actual_records
+                  SET start_time = ?, end_time = ?, text = ?, updated_at = ?
+                WHERE id = ? AND user_id = ? AND record_date = ?""",
+            (start_time, end_time, text, now, record_id, user_id, record_date),
+        )
+        cur = conn.execute(
+            "SELECT id, start_time, end_time, text, created_at, updated_at FROM actual_records WHERE id = ?",
+            (record_id,),
+        )
+    else:
+        cur = conn.execute(
+            """INSERT INTO actual_records (user_id, record_date, start_time, end_time, text, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (user_id, record_date, start_time, end_time, text, now, now),
+        )
+        cur = conn.execute(
+            "SELECT id, start_time, end_time, text, created_at, updated_at FROM actual_records WHERE id = ?",
+            (cur.lastrowid,),
+        )
+    return dict(cur.fetchone())
+
+
+def delete_actual_record(user_id: int, record_id: int) -> bool:
+    conn = get_conn()
+    cur = conn.execute(
+        "DELETE FROM actual_records WHERE id = ? AND user_id = ?",
+        (record_id, user_id),
+    )
+    return cur.rowcount > 0
+
+
 def count_tasks_by_month(user_id: int, month_str: str) -> dict[str, dict[str, int]]:
     """YYYY-MM → {date: {total, done}}"""
     conn = get_conn()
@@ -399,6 +479,23 @@ def list_tasks_in_range(user_id: int, start_date: str, end_date: str) -> list[di
         """SELECT * FROM today_tasks
             WHERE user_id = ? AND task_date BETWEEN ? AND ?
             ORDER BY task_date, COALESCE(anchor_time, '99:99'), id""",
+        (user_id, start_date, end_date),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def aggregate_coins(user_id: int, start_date: str, end_date: str) -> list[dict[str, Any]]:
+    """按类目聚合某日期范围内的金币消耗（1 金币 = 60 分钟）。"""
+    conn = get_conn()
+    rows = conn.execute(
+        """SELECT category,
+                  COUNT(*)                           AS count,
+                  COALESCE(SUM(duration_min), 0)     AS total_min,
+                  SUM(CASE WHEN done = 1 THEN 1 ELSE 0 END) AS done_count
+             FROM today_tasks
+            WHERE user_id = ? AND task_date BETWEEN ? AND ?
+            GROUP BY category
+            ORDER BY total_min DESC""",
         (user_id, start_date, end_date),
     ).fetchall()
     return [dict(r) for r in rows]
@@ -503,14 +600,16 @@ def delete_cloud_backup(user_id: int, backup_key: str) -> None:
 
 
 def close() -> None:
-    """v0.3 云备份：恢复 DB 前必须先关连接。"""
-    global _CONN
-    if _CONN is not None:
+    """v0.3 云备份：恢复 DB 前必须先关连接。关闭所有线程连接。"""
+    with _CONNS_LOCK:
+        conns = list(_CONNS)
+        _CONNS.clear()
+    for conn in conns:
         try:
-            _CONN.close()
+            conn.close()
         except Exception:
             pass
-        _CONN = None
+    _LOCAL.conn = None
 
 
 # ===================== v0.3 C 用户系统 =====================

@@ -15,6 +15,7 @@ dist-backend/
 build-backend/
 electron/node_modules/
 electron/release/
+deepseek.key
 _check_asar.js
 _check*.ps1
 _git_*.ps1

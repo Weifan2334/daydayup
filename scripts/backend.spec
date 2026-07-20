@@ -37,6 +37,9 @@ hiddenimports = [
     "backend.services.keygen",
     "backend.services.today",
     "backend.services.calendar",
+    "backend.services.ai",
+    "httpx",
+    "httpx._types",
     "backend.data_sources",
     "aiosqlite",
     "anyio",
@@ -80,6 +83,10 @@ a = Analysis(
     excludes=[
         "PySide6", "PyQt5", "PyQt6", "tkinter", "matplotlib", "numpy",
         "pandas", "scipy", "PIL", "cv2", "pytest",
+        # v0.3.4: 进一步剔除未用标准库 / 工具链，减小 _internal 体积
+        "unittest", "pydoc", "pydoc_data", "doctest", "distutils",
+        "setuptools", "pip", "ensurepip", "lib2to3", "curses",
+        "test", "turtledemo",
     ],
     noarchive=False,
 )
