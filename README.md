@@ -1,11 +1,4 @@
-# 明管家 / daydayup v0.3.4
-
-范先生的个人日常管理 PWA + Electron 桌面应用。
-
-> 设计原则：被动捕获 > 主动录入；看板 > 文档；决策辅助 > 数据陈列。
-
-**完整更新日志 → [CHANGELOG.md](./CHANGELOG.md)**
-
+# daydayup v0.3.4
 ---
 
 ## ✨ v0.3.4 亮点
